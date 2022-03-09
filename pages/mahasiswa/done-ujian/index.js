@@ -10,6 +10,7 @@ import {
   setFormPostHasilUjian,
 } from "../../../redux/actions";
 import jwtDecode from "jwt-decode";
+import Cookies from "js-cookie";
 import { postHasilUjian } from "../../../services/mahasiswa";
 
 export default function DoneUjian({ mahasiswa }) {
@@ -61,14 +62,11 @@ export default function DoneUjian({ mahasiswa }) {
       return toast.error(response?.data?.message);
     toast.success("Hasil ujian berhasil disimpan!");
     localStorage.clear();
+    Cookies.remove("dn");
     router.push("/mahasiswa/jadwal-ujian");
   };
 
   useEffect(() => {
-    if (localStorage.getItem("su")) return router.back();
-
-    if (!localStorage.getItem("dn")) return router.back();
-
     dispatch(setDataHasilUjian(mahasiswa?._id));
     if (Object.keys(dataHasilUjian).length > 0)
       return router.push("/mahasiswa/jadwal-ujian");
@@ -146,6 +144,27 @@ export async function getServerSideProps({ req }) {
     return {
       redirect: {
         destination: "/",
+        permanent: false,
+      },
+    };
+
+  const su = req.cookies.su;
+  if (su) {
+    const lnk = req.cookies.lnk;
+    const link = JSON.parse(Buffer.from(lnk, "base64").toString("utf-8"));
+    return {
+      redirect: {
+        destination: link,
+        permanent: false,
+      },
+    };
+  }
+
+  const dn = req.cookies.dn;
+  if (!dn)
+    return {
+      redirect: {
+        destination: "/mahasiswa/jadwal-ujian",
         permanent: false,
       },
     };

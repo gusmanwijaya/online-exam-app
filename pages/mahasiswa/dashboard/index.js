@@ -1,19 +1,13 @@
 import AOS from "aos";
 import jwtDecode from "jwt-decode";
-import { useRouter } from "next/router";
 import { useEffect } from "react";
 import Header from "../../../components/Header";
 import Navbar from "../../../components/Navbar";
 
 export default function Dashboard({ mahasiswa }) {
-  const router = useRouter();
-
   useEffect(() => {
-    if (localStorage.getItem("su")) return router.back();
-    if (localStorage.getItem("dn")) return router.push("/mahasiswa/done-ujian");
-
     AOS.init();
-  }, [router]);
+  }, []);
 
   return (
     <>
@@ -100,6 +94,27 @@ export async function getServerSideProps({ req }) {
     return {
       redirect: {
         destination: "/",
+        permanent: false,
+      },
+    };
+
+  const su = req.cookies.su;
+  if (su) {
+    const lnk = req.cookies.lnk;
+    const link = JSON.parse(Buffer.from(lnk, "base64").toString("utf-8"));
+    return {
+      redirect: {
+        destination: link,
+        permanent: false,
+      },
+    };
+  }
+
+  const dn = req.cookies.dn;
+  if (dn)
+    return {
+      redirect: {
+        destination: "/mahasiswa/done-ujian",
         permanent: false,
       },
     };

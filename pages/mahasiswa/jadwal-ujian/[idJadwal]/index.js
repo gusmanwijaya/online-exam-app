@@ -6,6 +6,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useRouter } from "next/router";
 import jwtDecode from "jwt-decode";
+import Cookies from "js-cookie";
 import { useDispatch, useSelector } from "react-redux";
 import {
   setDataDetailJadwalUjian,
@@ -30,9 +31,6 @@ export default function DetailJadwalUjian({ mahasiswa, params }) {
   const [token, setToken] = useState("");
 
   useEffect(() => {
-    if (localStorage.getItem("su")) return router.back();
-    if (localStorage.getItem("dn")) return router.push("/mahasiswa/done-ujian");
-
     AOS.init();
     dispatch(setDataDetailJadwalUjian(idUjian));
     dispatch(setDataSoalUjian(idUjian));
@@ -57,7 +55,14 @@ export default function DetailJadwalUjian({ mahasiswa, params }) {
     };
     dispatch(setDataTokenUjian(payload));
     toast.success("Selamat mengerjakan ujian!");
-    localStorage.setItem("su", true);
+    Cookies.set("su", true);
+    Cookies.set(
+      "lnk",
+      Buffer.from(
+        JSON.stringify(`/mahasiswa/do-the-exam?i=0&q=${dataSoalUjian[0]?._id}`),
+        "utf-8"
+      ).toString("base64")
+    );
     router.push(`/mahasiswa/do-the-exam?i=0&q=${dataSoalUjian[0]?._id}`);
   };
 
@@ -188,6 +193,27 @@ export async function getServerSideProps({ req, params }) {
     return {
       redirect: {
         destination: "/",
+        permanent: false,
+      },
+    };
+
+  const su = req.cookies.su;
+  if (su) {
+    const lnk = req.cookies.lnk;
+    const link = JSON.parse(Buffer.from(lnk, "base64").toString("utf-8"));
+    return {
+      redirect: {
+        destination: link,
+        permanent: false,
+      },
+    };
+  }
+
+  const dn = req.cookies.dn;
+  if (dn)
+    return {
+      redirect: {
+        destination: "/mahasiswa/done-ujian",
         permanent: false,
       },
     };

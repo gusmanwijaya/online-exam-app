@@ -9,6 +9,7 @@ import "react-confirm-alert/src/react-confirm-alert.css";
 import { useSelector, useDispatch } from "react-redux";
 import dateAndTime from "date-and-time";
 import jwtDecode from "jwt-decode";
+import Cookies from "js-cookie";
 import {
   setDataHasilUjian,
   setDataJawabanMahasiswa,
@@ -63,9 +64,6 @@ export default function DoTheExam({ queryIndex, queryParams, mahasiswa }) {
   // const daysDuration = days * daySeconds;
 
   useEffect(() => {
-    if (!localStorage.getItem("su")) return router.back();
-    if (localStorage.getItem("dn")) return router.push("/mahasiswa/done-ujian");
-
     dispatch(setDataHasilUjian(mahasiswa?._id));
     if (Object.keys(dataHasilUjian).length > 0)
       return router.push("/mahasiswa/jadwal-ujian");
@@ -91,7 +89,9 @@ export default function DoTheExam({ queryIndex, queryParams, mahasiswa }) {
       remainingTime - totalElapsedTime < hourSeconds &&
       remainingTime - totalElapsedTime < minuteSeconds
     ) {
-      localStorage.removeItem("su");
+      Cookies.remove("su");
+      Cookies.remove("lnk");
+
       const dateNow = dateAndTime.format(new Date(), "DD-MM-YYYY HH:mm");
       let array = [];
 
@@ -111,7 +111,7 @@ export default function DoTheExam({ queryIndex, queryParams, mahasiswa }) {
         data: array,
       };
       dispatch(setDataJawabanMahasiswa(payload));
-      localStorage.setItem("dn", true);
+      Cookies.set("dn", true);
       router.push("/mahasiswa/done-ujian");
     }
   };
@@ -151,7 +151,9 @@ export default function DoTheExam({ queryIndex, queryParams, mahasiswa }) {
         {
           label: "Ya",
           onClick: () => {
-            localStorage.removeItem("su");
+            Cookies.remove("su");
+            Cookies.remove("lnk");
+
             const dateNow = dateAndTime.format(new Date(), "DD-MM-YYYY HH:mm");
             let array = [];
 
@@ -172,7 +174,7 @@ export default function DoTheExam({ queryIndex, queryParams, mahasiswa }) {
               data: array,
             };
             dispatch(setDataJawabanMahasiswa(payload));
-            localStorage.setItem("dn", true);
+            Cookies.set("dn", true);
             router.push("/mahasiswa/done-ujian");
           },
         },
@@ -452,6 +454,24 @@ export async function getServerSideProps({ req, query }) {
     return {
       redirect: {
         destination: "/",
+        permanent: false,
+      },
+    };
+
+  const su = req.cookies.su;
+  if (!su)
+    return {
+      redirect: {
+        destination: "/mahasiswa/jadwal-ujian",
+        permanent: false,
+      },
+    };
+
+  const dn = req.cookies.dn;
+  if (dn)
+    return {
+      redirect: {
+        destination: "/mahasiswa/done-ujian",
         permanent: false,
       },
     };

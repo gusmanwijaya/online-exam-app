@@ -8,22 +8,17 @@ import jwtDecode from "jwt-decode";
 import { useSelector, useDispatch } from "react-redux";
 import { setDataJadwalUjian, setDataHasilUjian } from "../../../redux/actions";
 import dateAndTime from "date-and-time";
-import { useRouter } from "next/router";
 
 export default function JadwalUjian({ mahasiswa }) {
   const dispatch = useDispatch();
-  const router = useRouter();
   const { dataJadwalUjian } = useSelector((state) => state.jadwalUjian);
   const { dataHasilUjian } = useSelector((state) => state.hasilUjian);
 
   useEffect(() => {
-    if (localStorage.getItem("su")) return router.back();
-    if (localStorage.getItem("dn")) return router.push("/mahasiswa/done-ujian");
-
     AOS.init();
     dispatch(setDataJadwalUjian());
     dispatch(setDataHasilUjian(mahasiswa?._id));
-  }, [dispatch, mahasiswa?._id, router]);
+  }, [dispatch, mahasiswa?._id]);
 
   return (
     <>
@@ -253,6 +248,27 @@ export async function getServerSideProps({ req }) {
     return {
       redirect: {
         destination: "/",
+        permanent: false,
+      },
+    };
+
+  const su = req.cookies.su;
+  if (su) {
+    const lnk = req.cookies.lnk;
+    const link = JSON.parse(Buffer.from(lnk, "base64").toString("utf-8"));
+    return {
+      redirect: {
+        destination: link,
+        permanent: false,
+      },
+    };
+  }
+
+  const dn = req.cookies.dn;
+  if (dn)
+    return {
+      redirect: {
+        destination: "/mahasiswa/done-ujian",
         permanent: false,
       },
     };
