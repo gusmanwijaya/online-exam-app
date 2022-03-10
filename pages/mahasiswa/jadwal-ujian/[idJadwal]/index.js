@@ -12,7 +12,6 @@ import {
   setDataDetailJadwalUjian,
   setDataHasilUjian,
   setDataSoalUjian,
-  setDataTokenUjian,
 } from "../../../../redux/actions";
 import { getTokenUjian } from "../../../../services/mahasiswa";
 import dateAndTime from "date-and-time";
@@ -53,7 +52,6 @@ export default function DetailJadwalUjian({ mahasiswa, params }) {
       waktuMulai,
       data: response?.data?.data,
     };
-    dispatch(setDataTokenUjian(payload));
     toast.success("Selamat mengerjakan ujian!");
     Cookies.set("su", true);
     Cookies.set(
@@ -62,6 +60,21 @@ export default function DetailJadwalUjian({ mahasiswa, params }) {
         JSON.stringify(`/mahasiswa/do-the-exam?i=0&q=${dataSoalUjian[0]?._id}`),
         "utf-8"
       ).toString("base64")
+    );
+    Cookies.set("ct", dataDetailJadwalUjian?.durasiUjian);
+    Cookies.set(
+      "dju",
+      Buffer.from(JSON.stringify(dataDetailJadwalUjian), "utf-8").toString(
+        "base64"
+      )
+    );
+    Cookies.set(
+      "tu",
+      Buffer.from(JSON.stringify(payload), "utf-8").toString("base64")
+    );
+    localStorage.setItem(
+      "slu",
+      Buffer.from(JSON.stringify(dataSoalUjian), "utf-8").toString("base64")
     );
     router.push(`/mahasiswa/do-the-exam?i=0&q=${dataSoalUjian[0]?._id}`);
   };

@@ -10,25 +10,23 @@ import { useSelector, useDispatch } from "react-redux";
 import dateAndTime from "date-and-time";
 import jwtDecode from "jwt-decode";
 import Cookies from "js-cookie";
-import {
-  setDataHasilUjian,
-  setDataJawabanMahasiswa,
-  setDataOneSoalUjian,
-} from "../../../redux/actions";
+import { setDataHasilUjian, setDataOneSoalUjian } from "../../../redux/actions";
 
-export default function DoTheExam({ queryIndex, queryParams, mahasiswa }) {
+export default function DoTheExam({
+  queryIndex,
+  queryParams,
+  mahasiswa,
+  menitUjian,
+}) {
   const API_IMG_SOAL = process.env.NEXT_PUBLIC_IMG_SOAL;
   const API_IMG_PILIHAN = process.env.NEXT_PUBLIC_IMG_PILIHAN;
 
   const [radio, setRadio] = useState("");
+  const [soalUjian, setSoalUjian] = useState([]);
 
   const router = useRouter();
   const dispatch = useDispatch();
 
-  const { dataDetailJadwalUjian } = useSelector(
-    (state) => state.detailJadwalUjian
-  );
-  const { dataSoalUjian } = useSelector((state) => state.soalUjian);
   const { dataOneSoalUjian } = useSelector((state) => state.oneSoalUjian);
   const { dataHasilUjian } = useSelector((state) => state.hasilUjian);
 
@@ -57,13 +55,20 @@ export default function DoTheExam({ queryIndex, queryParams, mahasiswa }) {
   // const getTimeDays = (time) => (time / daySeconds) | 0;
 
   const stratTime = Date.now() / 1000; // use UNIX timestamp in seconds
-  const endTime = stratTime + dataDetailJadwalUjian?.durasiUjian * 60;
+  const endTime = stratTime + menitUjian * 60;
 
   const remainingTime = endTime - stratTime;
   // const days = Math.ceil(remainingTime / daySeconds);
   // const daysDuration = days * daySeconds;
 
   useEffect(() => {
+    if (localStorage.getItem("slu")) {
+      const soalLocalStorage = JSON.parse(
+        Buffer.from(localStorage.getItem("slu"), "base64").toString("utf-8")
+      );
+      setSoalUjian(soalLocalStorage);
+    }
+
     dispatch(setDataHasilUjian(mahasiswa?._id));
     if (Object.keys(dataHasilUjian).length > 0)
       return router.push("/mahasiswa/jadwal-ujian");
@@ -95,7 +100,7 @@ export default function DoTheExam({ queryIndex, queryParams, mahasiswa }) {
       const dateNow = dateAndTime.format(new Date(), "DD-MM-YYYY HH:mm");
       let array = [];
 
-      dataSoalUjian.forEach((soal) => {
+      soalUjian.forEach((soal) => {
         if (localStorage.getItem(soal?._id))
           return array.push(
             JSON.parse(
@@ -110,7 +115,10 @@ export default function DoTheExam({ queryIndex, queryParams, mahasiswa }) {
         waktuSelesai: dateNow,
         data: array,
       };
-      dispatch(setDataJawabanMahasiswa(payload));
+      Cookies.set(
+        "jm",
+        Buffer.from(JSON.stringify(payload), "utf-8").toString("base64")
+      );
       Cookies.set("dn", true);
       router.push("/mahasiswa/done-ujian");
     }
@@ -133,14 +141,14 @@ export default function DoTheExam({ queryIndex, queryParams, mahasiswa }) {
     );
     router.push(
       `/mahasiswa/do-the-exam?i=${
-        dataSoalUjian.length - 1 === queryIndex ? queryIndex : queryIndex + 1
+        soalUjian.length - 1 === queryIndex ? queryIndex : queryIndex + 1
       }&q=${
-        dataSoalUjian.length - 1 === queryIndex
-          ? dataSoalUjian[queryIndex]?._id
-          : dataSoalUjian[queryIndex + 1]?._id
+        soalUjian.length - 1 === queryIndex
+          ? soalUjian[queryIndex]?._id
+          : soalUjian[queryIndex + 1]?._id
       }`
     );
-    if (queryIndex !== dataSoalUjian.length - 1) return setRadio("");
+    if (queryIndex !== soalUjian.length - 1) return setRadio("");
   };
 
   const onDone = () => {
@@ -157,7 +165,7 @@ export default function DoTheExam({ queryIndex, queryParams, mahasiswa }) {
             const dateNow = dateAndTime.format(new Date(), "DD-MM-YYYY HH:mm");
             let array = [];
 
-            dataSoalUjian.forEach((soal) => {
+            soalUjian.forEach((soal) => {
               if (localStorage.getItem(soal?._id))
                 return array.push(
                   JSON.parse(
@@ -173,7 +181,10 @@ export default function DoTheExam({ queryIndex, queryParams, mahasiswa }) {
               waktuSelesai: dateNow,
               data: array,
             };
-            dispatch(setDataJawabanMahasiswa(payload));
+            Cookies.set(
+              "jm",
+              Buffer.from(JSON.stringify(payload), "utf-8").toString("base64")
+            );
             Cookies.set("dn", true);
             router.push("/mahasiswa/done-ujian");
           },
@@ -184,6 +195,10 @@ export default function DoTheExam({ queryIndex, queryParams, mahasiswa }) {
         },
       ],
     });
+  };
+
+  const setSisaMenitUjian = (elapsedTime) => {
+    Cookies.set("ct", getTimeMinutes(hourSeconds - elapsedTime).toString());
   };
 
   return (
@@ -239,11 +254,14 @@ export default function DoTheExam({ queryIndex, queryParams, mahasiswa }) {
                 }
           }
         >
-          {({ elapsedTime, color }) => (
-            <span style={{ color }}>
-              {renderTime("menit", getTimeMinutes(hourSeconds - elapsedTime))}
-            </span>
-          )}
+          {({ elapsedTime, color }) => {
+            setSisaMenitUjian(elapsedTime);
+            return (
+              <span style={{ color }}>
+                {renderTime("menit", getTimeMinutes(hourSeconds - elapsedTime))}
+              </span>
+            );
+          }}
         </CountdownCircleTimer>
         <CountdownCircleTimer
           {...timerProps}
@@ -267,8 +285,8 @@ export default function DoTheExam({ queryIndex, queryParams, mahasiswa }) {
           <div className="card-body space-y-4">
             <h2 className="card-title justify-center">Navigasi Soal</h2>
             <div className="grid grid-cols-5 gap-4 lg:mx-12">
-              {dataSoalUjian.length > 0 &&
-                dataSoalUjian.map((value, index) => (
+              {soalUjian.length > 0 &&
+                soalUjian.map((value, index) => (
                   <button
                     key={index}
                     onClick={() => onNavigasiSoal(value?._id, index)}
@@ -480,11 +498,13 @@ export async function getServerSideProps({ req, query }) {
   const payload = jwtDecode(jwtToken);
   const mahasiswa = payload.mahasiswa;
   const { i, q } = query;
+  const ct = req.cookies.ct;
   return {
     props: {
       queryIndex: parseInt(i),
       queryParams: q,
       mahasiswa,
+      menitUjian: parseInt(ct),
     },
   };
 }
