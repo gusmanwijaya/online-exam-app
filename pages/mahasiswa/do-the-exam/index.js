@@ -284,7 +284,7 @@ export default function DoTheExam({
         <div className="card shadow-xl">
           <div className="card-body space-y-4">
             <h2 className="card-title justify-center">Navigasi Soal</h2>
-            <div className="grid grid-cols-5 gap-4 lg:mx-12">
+            <div className="grid grid-cols-5 gap-4">
               {soalUjian.length > 0 &&
                 soalUjian.map((value, index) => (
                   <button
